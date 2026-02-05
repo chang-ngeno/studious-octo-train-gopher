@@ -1,0 +1,16 @@
+# Database
+DB_URL=host=localhost user=postgres password=yourpassword dbname=auth_db port=5432 sslmode=disable
+
+# Authentication
+JWT_SECRET=your_super_secret_jwt_key_here
+
+# Superuser Initial Seed
+SUPER_USER_NAME=admin
+SUPER_USER_EMAIL=admin@example.com
+SUPER_USER_PASS=P@ssword123!
+
+# External Service (Example)
+EXTERNAL_AUTH_URL=https://api.external-provider.com/oauth/token
+EXTERNAL_USERNAME=service_client_id
+EXTERNAL_PASSWORD=service_client_secret
+EXTERNAL_SERVICE_URL=https://api.external-provider.com/v1
