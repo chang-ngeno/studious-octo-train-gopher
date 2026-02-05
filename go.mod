@@ -1,6 +1,6 @@
 module go-auth-api
 
-go 1.23 // Or your current Go version
+go 1.22.12 // Or your current Go version
 
 require (
 	github.com/gin-gonic/gin v1.9.1
