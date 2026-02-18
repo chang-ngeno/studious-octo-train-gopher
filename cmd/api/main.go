@@ -26,32 +26,58 @@ func main() {
 
 	// 1. Database & Seed
 	db, _ := gorm.Open(postgres.Open(os.Getenv("DB_URL")), &gorm.Config{})
-	database.InitDB(db)         // Migrations + Extensions
-	database.SeedSuperuser(db)  // Uses .env credentials
+	database.InitDB(db)        // Migrations + Extensions
+	database.SeedSuperuser(db) // Uses .env credentials
+
+	// init redis client
+	database.InitRedis()
 
 	// 2. DI Layers
 	repo := repository.NewUserRepository(db)
-	svc  := service.NewUserService(repo)
-	hdl  := handlers.NewUserHandler(svc)
+	svc := service.NewUserService(repo)
+	hdl := handlers.NewUserHandler(svc)
 
 	// 3. Router
 	r := gin.Default()
 	r.POST("/login", hdl.Login)
 	r.POST("/register", hdl.Register)
 
-	admin := r.Group("/admin").Use(auth.AuthMiddleware(), auth.AuthorizeRole("admin"))
+	api := r.Group("/api").Use(auth.AuthMiddleware())
 	{
-		admin.GET("/stats", hdl.GetStats)
+		// admin routes (only for users with 'admin' permission)
+		admin := r.Group("/admin").Use(auth.HasPermission("ADMIN", db))
+		{
+			admin.GET("/stats", hdl.GetStats)
+		}
+
+		// Finance Routes
+		finance := api.Group("/finance").Use(auth.HasPermission("FIN_VIEW", db))
+		{
+			finance.GET("/reports", hdl.GetReports)
+		}
+
+		// HR Routes
+		hr := api.Group("/hr").Use(auth.HasPermission("HR_MANAGE", db))
+		{
+			hr.POST("/onboard", hdl.OnboardEmployee)
+		}
 	}
-	
-	// Add this to your router in main.go
+
+	// Health Check Endpoint
 	r.GET("/health", func(c *gin.Context) {
-    	// Optionally check DB connection here
-    	c.JSON(http.StatusOK, gin.H{"status": "alive"})
+		// TODO: Optionally check DB connection here
+		c.JSON(http.StatusOK, gin.H{"status": "alive"})
 	})
 
 	// 4. Server & Shutdown
-	srv := &http.Server{Addr: ":8080", Handler: r}
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: r,
+	}
 	go func() { srv.ListenAndServe() }()
 
 	quit := make(chan os.Signal, 1)

@@ -29,19 +29,25 @@ func (h *UserHandler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
 }
 
-func (h *UserHandler) Login(c *gin.Context) {
-	var req models.LoginRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-		return
+func (s *UserService) Login(username, password string) (string, error) {
+	var user models.User
+	// Preload the Role and its Permissions
+	err := s.repo.DB.Preload("Role.Permissions").Where("username = ?", username).First(&user).Error
+	if err != nil {
+		return "", errors.New("invalid credentials")
 	}
 
-	token, err := h.svc.Login(req.Username, req.Password)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return
+	if !models.CheckPasswordHash(password, user.Password) {
+		return "", errors.New("invalid credentials")
 	}
-	c.JSON(http.StatusOK, gin.H{"token": token})
+
+	// Extract permission slugs
+	var permSlugs []string
+	for _, p := range user.Role.Permissions {
+		permSlugs = append(permSlugs, p.Slug)
+	}
+
+	return auth.GenerateToken(user.ID, user.Role.Name, permSlugs)
 }
 
 // Dummy stats for the Admin RBAC example

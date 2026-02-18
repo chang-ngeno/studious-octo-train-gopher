@@ -8,10 +8,15 @@ import (
 type UserRepository interface {
 	Create(user *models.User) error
 	FindByUsername(username string) (*models.User, error)
+	DB() *gorm.DB
 }
 
 type userRepo struct {
 	db *gorm.DB
+}
+
+func (r *userRepo) DB() *gorm.DB {
+	return r.db
 }
 
 func NewUserRepository(db *gorm.DB) UserRepository {

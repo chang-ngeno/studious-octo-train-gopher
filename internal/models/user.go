@@ -12,6 +12,21 @@ type User struct {
 	Email    string    `gorm:"uniqueIndex;not null" json:"email"`
 	Password string    `json:"-"`
 	IsAdmin  bool      `gorm:"default:false" json:"is_admin"`
+	RoleID   uint      `json:"role_id"`
+	Role     Role      `gorm:"foreignKey:RoleID" json:"role"`
+	SecurityVersion uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4()"`
+}
+
+type Role struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	Name        string    `gorm:"uniqueIndex;not null" json:"name"`
+	Permissions []Permission `gorm:"many2many:role_permissions;" json:"permissions"`
+}
+
+type Permission struct {
+	ID   uint   `gorm:"primaryKey" json:"id"`
+	Name string `gorm:"uniqueIndex;not null" json:"name"`
+	Slug string `gorm:"uniqueIndex;not null" json:"slug"`
 }
 
 func (u *User) BeforeCreate(tx *gorm.DB) error {
